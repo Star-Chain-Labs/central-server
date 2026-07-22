@@ -15,29 +15,20 @@ const router = express.Router();
 
 // Sports
 router.get("/sports", getSports);
-
-// Competitions
-router.get("/betfair/competition-list/:sportId", getCompetitionList);
-
-// Events
-router.get("/betfair/event-list/:sportId", getEventList);
-router.get(
-  "/betfair/event-list/:sportId/:competitionId",
-  getEventListByCompetition,
-);
-
-// Markets
-router.get("/betfair/market-all-list/:eventId", getMarketAllList);
+router.get("/competition-list/:sportId", getCompetitionList);
+router.get("/event-list/:sportId", getEventList);
+router.get("/event-list/:sportId/:competitionId", getEventListByCompetition);
+router.get("/market-all-list/:eventId", getMarketAllList);
 
 // Odds
-router.get("/betfair/market-odds/:eventId/:marketId", async (req, res) => {
+router.get("/market-odds/:eventId/:marketId", async (req, res) => {
   const { marketId } = req.params;
   // Direct controller call
 });
 
 // Fancy Odds
-router.get("/betfair/fancy-all-bookmaker-odds-v3/:eventId", getFancyOddsV3);
-router.get("/betfair/fancy-bookmaker-odds/:eventId", getFancyOdds);
+router.get("/fancy-all-bookmaker-odds-v3/:eventId", getFancyOddsV3);
+router.get("/fancy-bookmaker-odds/:eventId", getFancyOdds);
 
 // Health
 router.get("/health", getHealth);
