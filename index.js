@@ -197,7 +197,6 @@
 // };
 
 // startServer();
-
 import "dotenv/config";
 import express from "express";
 import mongoose from "mongoose";
@@ -217,7 +216,48 @@ const getAllowedAccess = () => {
   return allowed;
 };
 
-// ✅ Whitelist Middleware
+// ✅ CORS MIDDLEWARE - Add CORS headers
+const corsMiddleware = (req, res, next) => {
+  const origin = req.get("origin");
+  const allowedList = getAllowedAccess();
+
+  console.log(`\n🌐 [CORS Check]`);
+  console.log(`   Origin: ${origin}`);
+  console.log(`   Allowed: ${allowedList.join(", ")}`);
+
+  // Extract domain from origin
+  const originDomain = origin?.replace(/https?:\/\//, "").split(":")[0] || "";
+
+  // Check if origin is in allowed list
+  const isAllowed = allowedList.some(
+    (allowed) => origin?.includes(allowed) || originDomain === allowed,
+  );
+
+  // Set CORS headers
+  if (isAllowed || !origin) {
+    res.header("Access-Control-Allow-Origin", origin || "*");
+    res.header("Access-Control-Allow-Credentials", "true");
+    console.log(`✅ CORS: Headers Set\n`);
+  } else {
+    console.log(`⚠️ CORS: Origin not in whitelist\n`);
+  }
+
+  // Always set these headers
+  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+  res.header(
+    "Access-Control-Allow-Headers",
+    "Content-Type, Authorization, X-Requested-With",
+  );
+
+  // Handle preflight requests
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(200);
+  }
+
+  next();
+};
+
+// ✅ Whitelist Middleware - Check IP/Domain
 const accessControl = (req, res, next) => {
   const allowedList = getAllowedAccess();
 
@@ -231,7 +271,7 @@ const accessControl = (req, res, next) => {
   const origin = req.get("origin") || "direct-call";
   const originDomain = origin.replace(/https?:\/\//, "").split(":")[0];
 
-  console.log(`\n🔍 [Access Control]`);
+  console.log(`🔍 [Access Control]`);
   console.log(`   Client IP: ${clientIP}`);
   console.log(`   Origin: ${origin}`);
   console.log(`   Domain: ${originDomain}`);
@@ -296,8 +336,9 @@ app.get("/health", (req, res) => {
   });
 });
 
-// 🔴 PROTECTED - Whitelist required
-app.use("/api", accessControl, sportsRoutes);
+// 🔴 PROTECTED - Whitelist + CORS required
+// ✅ CORS FIRST, then access control
+app.use("/api", corsMiddleware, accessControl, sportsRoutes);
 
 // ============= INFO ENDPOINT =============
 app.get("/access-info", (req, res) => {
@@ -314,7 +355,7 @@ app.get("/access-info", (req, res) => {
       allowed_access_list: allowedList,
       total_allowed: allowedList.length,
       message:
-        "Add more IPs/domains to .env file: ALLOWED_ACCESS=ip1,domain1,ip2,domain2",
+        "Add more IPs/domains to .env file: ALLOWED_DOMAINS=ip1,domain1,ip2,domain2",
     },
   });
 });
@@ -330,9 +371,10 @@ const startServer = async () => {
     console.log(`\n${"=".repeat(60)}`);
     console.log(`🚀 Sports Sync Service running on 0.0.0.0:${PORT}`);
     console.log(`🔐 Access Control: ENABLED`);
+    console.log(`🌐 CORS: ENABLED`);
     console.log(`📋 Whitelisted Access (${allowedList.length}):`);
     allowedList.forEach((a) => console.log(`   ✅ ${a}`));
-    console.log(`\n📝 To add more: Edit .env ALLOWED_ACCESS variable`);
+    console.log(`\n📝 To add more: Edit .env ALLOWED_DOMAINS variable`);
     console.log(
       `📊 Check your IP: curl http://72.61.237.185:${PORT}/access-info`,
     );
