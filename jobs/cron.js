@@ -223,7 +223,7 @@ export const syncMarkets = async () => {
       }
     }
   } catch (err) {
-    console.error("❌ [Markets Sync] FATAL ERROR:", err.message, err.stack);
+    // console.error("❌ [Markets Sync] FATAL ERROR:", err.message, err.stack);
   }
 };
 

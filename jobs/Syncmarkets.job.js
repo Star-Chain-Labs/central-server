@@ -59,6 +59,6 @@ export const syncMarkets = async () => {
       }
     }
   } catch (err) {
-    console.error("❌ [Markets Sync] fatal error:", err.message);
+    // console.error("❌ [Markets Sync] fatal error:", err.message);
   }
 };
