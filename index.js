@@ -249,7 +249,6 @@ const corsMiddleware = (req, res, next) => {
     "Content-Type, Authorization, X-Requested-With",
   );
 
-  // Handle preflight requests
   if (req.method === "OPTIONS") {
     return res.sendStatus(200);
   }
@@ -257,33 +256,29 @@ const corsMiddleware = (req, res, next) => {
   next();
 };
 
-// ✅ Whitelist Middleware - Check IP/Domain
 const accessControl = (req, res, next) => {
   const allowedList = getAllowedAccess();
 
-  // Get client IP
   const clientIP =
     req.get("X-Forwarded-For")?.split(",")[0].trim() ||
     req.get("X-Real-IP") ||
     req.ip?.replace("::ffff:", "");
 
-  // Get origin domain
   const origin = req.get("origin") || "direct-call";
   const originDomain = origin.replace(/https?:\/\//, "").split(":")[0];
 
-  console.log(`🔍 [Access Control]`);
-  console.log(`   Client IP: ${clientIP}`);
-  console.log(`   Origin: ${origin}`);
-  console.log(`   Domain: ${originDomain}`);
-  console.log(`   Allowed List: ${allowedList.join(", ")}`);
+  // console.log(`🔍 [Access Control]`);
+  // console.log(`   Client IP: ${clientIP}`);
+  // console.log(`   Origin: ${origin}`);
+  // console.log(`   Domain: ${originDomain}`);
+  // console.log(`   Allowed List: ${allowedList.join(", ")}`);
 
-  // Check if IP or domain is whitelisted
   const isAllowed = allowedList.some((allowed) => {
     const match =
-      clientIP === allowed || // IP match
-      originDomain === allowed || // Domain match
-      origin.includes(allowed) || // Full origin match
-      allowed.includes(clientIP); // Reverse check
+      clientIP === allowed ||
+      originDomain === allowed ||
+      origin.includes(allowed) ||
+      allowed.includes(clientIP);
 
     if (match) {
       console.log(`   ✅ Matched with: ${allowed}`);
@@ -306,7 +301,6 @@ const accessControl = (req, res, next) => {
   });
 };
 
-// ============= DATABASE =============
 const connectDB = async () => {
   try {
     await mongoose.connect(process.env.MONGO_URI);
@@ -317,10 +311,8 @@ const connectDB = async () => {
   }
 };
 
-// ============= ROUTES =============
 app.use(express.json());
 
-// 🟢 PUBLIC - No auth needed
 app.get("/", (req, res) => {
   res.json({
     message: "Sports Sync API",
@@ -336,8 +328,6 @@ app.get("/health", (req, res) => {
   });
 });
 
-// 🔴 PROTECTED - Whitelist + CORS required
-// ✅ CORS FIRST, then access control
 app.use("/api", corsMiddleware, accessControl, sportsRoutes);
 
 // ============= INFO ENDPOINT =============
