@@ -357,8 +357,6 @@ export const syncCricketFancyBookmaker = async () => {
       sportId: "4",
     }).select("eventId");
 
-    console.log(`🟡 [Fancy Sync] Found ${events.length} cricket events`);
-
     if (events.length === 0) {
       console.log("⚠️ No cricket events found");
       return;
@@ -432,10 +430,8 @@ export const syncCricketFancyBookmaker = async () => {
         console.error("❌ BulkWrite failed:", bulkErr.message);
       }
     }
-
-    console.log(`✅ [Fancy Sync] Complete - ${totalFancy} total fancy markets`);
   } catch (err) {
-    console.error("❌ [Fancy Sync] FATAL:", err.message);
+    // console.error("❌ [Fancy Sync] FATAL:", err.message);
   }
 };
 export const startSyncJobs = () => {
@@ -453,10 +449,10 @@ export const startSyncJobs = () => {
   syncEvents();
   syncMarkets();
 
-  console.log("\n✅ [Sync Manager] All jobs started!");
-  console.log("   Competitions: every 60 minutes");
-  console.log("   Events: every 12 minutes");
-  console.log("   Markets: every 6 minutes");
-  console.log("   Odds: every 1 second");
-  console.log("   Fancy: every 1 second\n");
+  // console.log("\n✅ [Sync Manager] All jobs started!");
+  // console.log("   Competitions: every 60 minutes");
+  // console.log("   Events: every 12 minutes");
+  // console.log("   Markets: every 6 minutes");
+  // console.log("   Odds: every 1 second");
+  // console.log("   Fancy: every 1 second\n");
 };

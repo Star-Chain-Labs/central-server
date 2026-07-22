@@ -98,7 +98,7 @@ export const syncCricketFancyBookmaker = async () => {
     console.log(`🟡 [Fancy Sync] Found ${events.length} cricket events`);
 
     if (events.length === 0) {
-      console.log("ℹ️ [Fancy Sync] No cricket events found");
+      // console.log("ℹ️ [Fancy Sync] No cricket events found");
       return;
     }
 
@@ -165,10 +165,10 @@ export const syncCricketFancyBookmaker = async () => {
 
         console.log(`    📝 Mapped ${fancy.length} fancy items`);
       } catch (innerErr) {
-        console.error(
-          `❌ [Fancy Sync] Event ${ev.eventId} failed:`,
-          innerErr.message,
-        );
+        // console.error(
+        //   `❌ [Fancy Sync] Event ${ev.eventId} failed:`,
+        //   innerErr.message,
+        // );
       }
     }
 
@@ -177,15 +177,15 @@ export const syncCricketFancyBookmaker = async () => {
     if (bulkOps.length > 0) {
       try {
         const result = await CricketFancyOdds.bulkWrite(bulkOps);
-        console.log(
-          `  ✅ Fancy synced - Upserted: ${result.upsertedCount}, Modified: ${result.modifiedCount}`,
-        );
+        // console.log(
+        //   `  ✅ Fancy synced - Upserted: ${result.upsertedCount}, Modified: ${result.modifiedCount}`,
+        // );
       } catch (bulkErr) {
         console.error("❌ BulkWrite failed:", bulkErr.message);
       }
     }
 
-    console.log(`✅ [Fancy Sync] Complete - ${totalFancy} total fancy markets`);
+    // console.log(`✅ [Fancy Sync] Complete - ${totalFancy} total fancy markets`);
   } catch (err) {
     console.error(
       "❌ [Cricket Fancy/Bookmaker Sync] fatal error:",
