@@ -45,7 +45,6 @@ const connectDB = async () => {
     await mongoose.connect(
       process.env.MONGO_URI || "mongodb://localhost:27017/sports-sync",
     );
-    startSyncJobs();
     console.log("✅ MongoDB connected");
   } catch (error) {
     console.error("❌ MongoDB connection failed:", error.message);
@@ -54,9 +53,10 @@ const connectDB = async () => {
 };
 
 app.use("/api", sportsRoutes);
+
 const startServer = async () => {
   await connectDB();
-  startSyncJobs();
+  startSyncJobs(); // Sirf ek baar call karo
 
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`🚀 Sports Sync Service running on 0.0.0.0:${PORT}`);
