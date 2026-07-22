@@ -52,11 +52,17 @@ const connectDB = async () => {
   }
 };
 
+// ✅ YAHA ADD KAR - ROOT ENDPOINT
+app.get("/", (req, res) => {
+  res.json({ message: "Sports Sync API", status: "running" });
+});
+
+// API Routes
 app.use("/api", sportsRoutes);
 
 const startServer = async () => {
   await connectDB();
-  startSyncJobs(); // Sirf ek baar call karo
+  startSyncJobs();
 
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`🚀 Sports Sync Service running on 0.0.0.0:${PORT}`);
