@@ -95,8 +95,6 @@ export const syncCricketFancyBookmaker = async () => {
       sportId: "4",
     }).select("eventId");
 
-    console.log(`🟡 [Fancy Sync] Found ${events.length} cricket events`);
-
     if (events.length === 0) {
       // console.log("ℹ️ [Fancy Sync] No cricket events found");
       return;
@@ -107,14 +105,11 @@ export const syncCricketFancyBookmaker = async () => {
 
     for (const ev of events) {
       try {
-        console.log(`  🔍 Event ${ev.eventId}`);
-
         const { data } = await client.get(
           `/fancy-bookmaker-odds/${ev.eventId}`,
         );
 
         const rawFancy = data?.fancy || [];
-        console.log(`    ✔️ Received ${rawFancy.length} fancy markets`);
 
         if (rawFancy.length === 0) continue;
 
@@ -162,8 +157,6 @@ export const syncCricketFancyBookmaker = async () => {
             upsert: true,
           },
         });
-
-        console.log(`    📝 Mapped ${fancy.length} fancy items`);
       } catch (innerErr) {
         // console.error(
         //   `❌ [Fancy Sync] Event ${ev.eventId} failed:`,
@@ -171,8 +164,6 @@ export const syncCricketFancyBookmaker = async () => {
         // );
       }
     }
-
-    console.log(`  📊 Total bulkOps: ${bulkOps.length}`);
 
     if (bulkOps.length > 0) {
       try {

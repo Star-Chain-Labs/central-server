@@ -51,7 +51,6 @@ const client = axios.create({ baseURL: PROVIDER_BASE, timeout: 15000 });
 // ========== SYNC SPORTS ==========
 export const syncSports = async () => {
   try {
-    console.log("🟡 [Sports Sync] Starting...");
     const sports = [
       { sportId: "4", name: "Cricket", key: "cricket", isActive: true },
       { sportId: "2", name: "Tennis", key: "tennis", isActive: true },
@@ -66,13 +65,7 @@ export const syncSports = async () => {
       });
       inserted += result.upsertedCount || 0;
       updated += result.modifiedCount || 0;
-      console.log(
-        `  📝 ${sport.name} - Inserted: ${result.upsertedCount}, Updated: ${result.modifiedCount}`,
-      );
     }
-    console.log(
-      `✅ [Sports Sync] Complete - Inserted: ${inserted}, Updated: ${updated}`,
-    );
   } catch (err) {
     console.error("❌ [Sports Sync] FATAL ERROR:", err.message, err.stack);
   }
@@ -81,19 +74,12 @@ export const syncSports = async () => {
 // ========== SYNC COMPETITIONS ==========
 export const syncCompetitions = async () => {
   try {
-    console.log("🟡 [Competitions Sync] Starting...");
     const sports = await Sport.find({ isActive: true });
-    console.log(`  Found ${sports.length} active sports`);
-
     for (const sport of sports) {
       try {
-        console.log(`  🔍 Fetching competitions for ${sport.name}...`);
         const { data } = await client.get(`/competition-list/${sport.sportId}`);
         const competitions = Array.isArray(data) ? data : [];
-        console.log(`  ✔️ Received ${competitions.length} competitions`);
-
         if (competitions.length === 0) {
-          console.log(`  ⚠️ No competitions for ${sport.name}`);
           continue;
         }
 
@@ -117,11 +103,7 @@ export const syncCompetitions = async () => {
           },
         }));
 
-        console.log(`  📝 Writing ${ops.length} operations to DB...`);
         const result = await Competition.bulkWrite(ops);
-        console.log(
-          `  ✅ Competitions ${sport.name} - Matched: ${result.matchedCount}, Upserted: ${result.upsertedCount}, Modified: ${result.modifiedCount}`,
-        );
       } catch (innerErr) {
         console.error(
           `❌ [Competitions Sync] ${sport.name} failed:`,
@@ -129,7 +111,6 @@ export const syncCompetitions = async () => {
         );
       }
     }
-    console.log(`✅ [Competitions Sync] Complete`);
   } catch (err) {
     console.error(
       "❌ [Competitions Sync] FATAL ERROR:",
@@ -142,19 +123,14 @@ export const syncCompetitions = async () => {
 // ========== SYNC EVENTS ==========
 export const syncEvents = async () => {
   try {
-    console.log("🟡 [Events Sync] Starting...");
     const sports = await Sport.find({ isActive: true });
-    console.log(`  Found ${sports.length} active sports`);
 
     for (const sport of sports) {
       try {
-        console.log(`  🔍 Fetching events for ${sport.name}...`);
         const { data } = await client.get(`/event-list/${sport.sportId}`);
         const events = Array.isArray(data) ? data : [];
-        console.log(`  ✔️ Received ${events.length} events`);
 
         if (events.length === 0) {
-          console.log(`  ⚠️ No events for ${sport.name}`);
           continue;
         }
 
@@ -181,11 +157,7 @@ export const syncEvents = async () => {
           },
         }));
 
-        console.log(`  📝 Writing ${ops.length} operations to DB...`);
         const result = await Event.bulkWrite(ops);
-        console.log(
-          `  ✅ Events ${sport.name} - Matched: ${result.matchedCount}, Upserted: ${result.upsertedCount}, Modified: ${result.modifiedCount}`,
-        );
       } catch (innerErr) {
         console.error(
           `❌ [Events Sync] ${sport.name} failed:`,
@@ -193,7 +165,6 @@ export const syncEvents = async () => {
         );
       }
     }
-    console.log(`✅ [Events Sync] Complete`);
   } catch (err) {
     console.error("❌ [Events Sync] FATAL ERROR:", err.message, err.stack);
   }
@@ -202,12 +173,10 @@ export const syncEvents = async () => {
 // ========== SYNC MARKETS ==========
 export const syncMarkets = async () => {
   try {
-    console.log("🟡 [Markets Sync] Starting...");
     const soon = new Date(Date.now() + 24 * 60 * 60 * 1000);
     const events = await Event.find({ openDate: { $lte: soon } }).select(
       "eventId sportId name",
     );
-    console.log(`  Found ${events.length} events within 24h`);
 
     let totalMarkets = 0;
 
@@ -244,14 +213,8 @@ export const syncMarkets = async () => {
           },
         }));
 
-        console.log(
-          `  📝 Event ${ev.eventId}: Writing ${ops.length} markets...`,
-        );
         const result = await Market.bulkWrite(ops);
         totalMarkets += result.upsertedCount + result.modifiedCount;
-        console.log(
-          `    ✅ Upserted: ${result.upsertedCount}, Modified: ${result.modifiedCount}`,
-        );
       } catch (innerErr) {
         console.error(
           `❌ [Markets Sync] Event ${ev.eventId} failed:`,
@@ -259,10 +222,6 @@ export const syncMarkets = async () => {
         );
       }
     }
-
-    console.log(
-      `✅ [Markets Sync] Complete - Total: ${totalMarkets} markets synced`,
-    );
   } catch (err) {
     console.error("❌ [Markets Sync] FATAL ERROR:", err.message, err.stack);
   }
@@ -283,11 +242,9 @@ export const syncOdds = async () => {
     }).select("marketId eventId sportId");
 
     if (markets.length === 0) {
-      console.log("ℹ️ [Odds Sync] No markets to update");
+      // console.log("ℹ️ [Odds Sync] No markets to update");
       return;
     }
-
-    console.log(`🟡 [Odds Sync] Found ${markets.length} markets`);
 
     const marketIds = markets.map((m) => m.marketId);
     const meta = Object.fromEntries(markets.map((m) => [m.marketId, m]));
@@ -335,16 +292,16 @@ export const syncOdds = async () => {
         if (bulkOps.length > 0) {
           const result = await Odds.bulkWrite(bulkOps);
           totalOdds += result.upsertedCount + result.modifiedCount;
-          console.log(
-            `  📝 Batch: Upserted ${result.upsertedCount}, Modified ${result.modifiedCount}`,
-          );
+          // console.log(
+          //   `  📝 Batch: Upserted ${result.upsertedCount}, Modified ${result.modifiedCount}`,
+          // );
         }
       } catch (batchErr) {
         console.error("❌ [Odds Sync] Batch failed:", batchErr.message);
       }
     }
 
-    console.log(`✅ [Odds Sync] Complete - Total: ${totalOdds} odds synced`);
+    // console.log(`✅ [Odds Sync] Complete - Total: ${totalOdds} odds synced`);
   } catch (err) {
     console.error("❌ [Odds Sync] FATAL ERROR:", err.message, err.stack);
   }
@@ -358,7 +315,6 @@ export const syncCricketFancyBookmaker = async () => {
     }).select("eventId");
 
     if (events.length === 0) {
-      console.log("⚠️ No cricket events found");
       return;
     }
 
@@ -368,13 +324,11 @@ export const syncCricketFancyBookmaker = async () => {
     for (const ev of events) {
       // Sequential instead of parallel
       try {
-        console.log(`  🔍 Event ${ev.eventId}`);
         const { data } = await client.get(
           `/fancy-bookmaker-odds/${ev.eventId}`,
         );
 
         const rawFancy = data?.fancy || [];
-        console.log(`  ✔️ Received ${rawFancy.length} fancy markets`);
 
         if (rawFancy.length === 0) continue;
 
@@ -396,8 +350,6 @@ export const syncCricketFancyBookmaker = async () => {
           };
         });
 
-        console.log(`  📝 Mapped ${fancy.length} items`);
-
         bulkOps.push({
           updateOne: {
             filter: { eventId: ev.eventId },
@@ -416,16 +368,9 @@ export const syncCricketFancyBookmaker = async () => {
       }
     }
 
-    console.log(`  📊 Total bulkOps: ${bulkOps.length}`);
-    console.log(`  📊 Total fancy markets: ${totalFancy}`);
-
     if (bulkOps.length > 0) {
       try {
-        console.log("  🔄 Executing bulkWrite...");
         const result = await CricketFancyOdds.bulkWrite(bulkOps);
-        console.log(
-          `  ✅ BulkWrite Result - Matched: ${result.matchedCount}, Upserted: ${result.upsertedCount}, Modified: ${result.modifiedCount}`,
-        );
       } catch (bulkErr) {
         console.error("❌ BulkWrite failed:", bulkErr.message);
       }
@@ -435,8 +380,6 @@ export const syncCricketFancyBookmaker = async () => {
   }
 };
 export const startSyncJobs = () => {
-  console.log("🔄 [Sync Manager] Initializing sync jobs...\n");
-
   syncSports();
 
   cron.schedule("0 * * * *", syncCompetitions);

@@ -18,7 +18,6 @@ export const syncSports = async () => {
         { upsert: true },
       );
     }
-    console.log(`✅ [Sports Sync] ${KNOWN_SPORTS.length} sports synced`);
   } catch (err) {
     console.error("❌ [Sports Sync] error:", err.message);
   }

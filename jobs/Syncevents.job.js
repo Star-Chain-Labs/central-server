@@ -34,10 +34,6 @@ export const syncEvents = async () => {
         if (ops.length > 0) {
           await Event.bulkWrite(ops);
         }
-
-        console.log(
-          `✅ [Events Sync] ${sport.name} (${sport.sportId}) — ${events.length} events`,
-        );
       } catch (innerErr) {
         console.error(
           `❌ [Events Sync] ${sport.name} failed:`,

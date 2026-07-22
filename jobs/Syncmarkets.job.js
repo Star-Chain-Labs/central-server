@@ -58,10 +58,6 @@ export const syncMarkets = async () => {
         );
       }
     }
-
-    console.log(
-      `✅ [Markets Sync] ${events.length} events → ${totalMarkets} markets synced`,
-    );
   } catch (err) {
     console.error("❌ [Markets Sync] fatal error:", err.message);
   }

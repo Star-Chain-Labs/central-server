@@ -98,10 +98,7 @@ export const syncOdds = async () => {
       marketName: "Match Odds",
     }).select("marketId eventId sportId");
 
-    console.log(`🟡 [Odds Sync] Found ${markets.length} Match Odds markets`);
-
     if (markets.length === 0) {
-      console.log("ℹ️ [Odds Sync] No markets to update");
       return;
     }
 
@@ -109,7 +106,6 @@ export const syncOdds = async () => {
     const meta = Object.fromEntries(markets.map((m) => [m.marketId, m]));
 
     const batches = chunk(marketIds, 10);
-    console.log(`  📦 Batched into ${batches.length} requests (10 per batch)`);
 
     let totalOdds = 0;
     let batchNum = 0;
@@ -117,14 +113,11 @@ export const syncOdds = async () => {
     for (const batch of batches) {
       batchNum++;
       try {
-        console.log(`  🔍 Batch ${batchNum}/${batches.length}`);
-
         const { data } = await client.post("/listMarketBook", {
           marketIds: batch,
         });
 
         const books = data?.data || data || [];
-        console.log(`    ✔️ Received ${books.length} odds books`);
 
         const bulkOps = [];
 
@@ -160,19 +153,9 @@ export const syncOdds = async () => {
         if (bulkOps.length > 0) {
           const result = await Odds.bulkWrite(bulkOps);
           totalOdds += result.upsertedCount + result.modifiedCount;
-          console.log(
-            `    ✅ Batch ${batchNum} - Upserted: ${result.upsertedCount}, Modified: ${result.modifiedCount}`,
-          );
         }
-      } catch (batchErr) {
-        console.error(
-          `❌ [Odds Sync] Batch ${batchNum} failed:`,
-          batchErr.message,
-        );
-      }
+      } catch (batchErr) {}
     }
-
-    console.log(`✅ [Odds Sync] Complete - Total: ${totalOdds} odds synced`);
   } catch (err) {
     console.error("❌ [Odds Sync] fatal error:", err.message);
   }
