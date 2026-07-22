@@ -369,16 +369,16 @@ const startServer = async () => {
 
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`\n${"=".repeat(60)}`);
-    console.log(`🚀 Sports Sync Service running on 0.0.0.0:${PORT}`);
-    console.log(`🔐 Access Control: ENABLED`);
-    console.log(`🌐 CORS: ENABLED`);
-    console.log(`📋 Whitelisted Access (${allowedList.length}):`);
+    // console.log(`🚀 Sports Sync Service running on 0.0.0.0:${PORT}`);
+    // console.log(`🔐 Access Control: ENABLED`);
+    // console.log(`🌐 CORS: ENABLED`);
+    // console.log(`📋 Whitelisted Access (${allowedList.length}):`);
     allowedList.forEach((a) => console.log(`   ✅ ${a}`));
-    console.log(`\n📝 To add more: Edit .env ALLOWED_DOMAINS variable`);
-    console.log(
-      `📊 Check your IP: curl http://72.61.237.185:${PORT}/access-info`,
-    );
-    console.log(`${"=".repeat(60)}\n`);
+    // console.log(`\n📝 To add more: Edit .env ALLOWED_DOMAINS variable`);
+    // console.log(
+    //   `📊 Check your IP: curl http://72.61.237.185:${PORT}/access-info`,
+    // );
+    // console.log(`${"=".repeat(60)}\n`);
   });
 };
 
