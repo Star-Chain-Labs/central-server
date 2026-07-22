@@ -52,10 +52,6 @@ export const syncMarkets = async () => {
         }
       } catch (innerErr) {
         // one event's market list failing shouldn't stop the whole sync
-        console.error(
-          `❌ [Markets Sync] event ${ev.eventId} failed:`,
-          innerErr.message,
-        );
       }
     }
   } catch (err) {

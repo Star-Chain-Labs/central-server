@@ -215,12 +215,7 @@ export const syncMarkets = async () => {
 
         const result = await Market.bulkWrite(ops);
         totalMarkets += result.upsertedCount + result.modifiedCount;
-      } catch (innerErr) {
-        console.error(
-          `❌ [Markets Sync] Event ${ev.eventId} failed:`,
-          innerErr.message,
-        );
-      }
+      } catch (innerErr) {}
     }
   } catch (err) {
     // console.error("❌ [Markets Sync] FATAL ERROR:", err.message, err.stack);
