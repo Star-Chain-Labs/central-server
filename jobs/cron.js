@@ -351,6 +351,108 @@ export const syncOdds = async () => {
 };
 
 // ========== SYNC CRICKET FANCY ==========
+// export const syncCricketFancyBookmaker = async () => {
+//   try {
+//     const soon = new Date(Date.now() + 6 * 60 * 60 * 1000);
+//     const events = await Event.find({
+//       sportId: "4",
+//       openDate: { $lte: soon },
+//     }).select("eventId");
+
+//     if (events.length === 0) {
+//       console.log("ℹ️ [Fancy Sync] No cricket events");
+//       return;
+//     }
+
+//     console.log(`🟡 [Fancy Sync] Found ${events.length} cricket events`);
+
+//     const bulkOps = [];
+//     let fancyCount = 0;
+
+//     await Promise.all(
+//       events.map(async (ev) => {
+//         try {
+//           const { data } = await client.get(
+//             `/fancy-bookmaker-odds/${ev.eventId}`,
+//           );
+
+//           const rawFancy = data?.fancy || [];
+//           console.log(
+//             `  Event ${ev.eventId}: ${rawFancy.length} fancy markets`,
+//           );
+
+//           if (rawFancy.length > 0) {
+//             fancyCount += rawFancy.length;
+//           }
+
+//           const fancy = rawFancy.map((f) => {
+//             const item = typeof f === "string" ? JSON.parse(f) : f;
+//             return {
+//               selectionId: String(item.SelectionId || item.sid || "0"),
+//               runnerName: item.RunnerName || item.nat || "Unknown",
+//               gtype: item.gtype || "other",
+//               backPrice: item.BackPrice1 || item.b1 || 1.9,
+//               backSize: item.BackSize1 || item.bs1 || 0,
+//               layPrice: item.LayPrice1 || item.l1 || 2.1,
+//               laySize: item.LaySize1 || item.ls1 || 0,
+//               min: item.min || 100,
+//               max: item.max || 50000,
+//               remark: item.rem || item.remark || "",
+//             };
+//           });
+
+//           const bookmaker = (data?.bookmaker || []).map((bm) => ({
+//             sid: bm.sid || bm.SelectionId || "0",
+//             nat: bm.nat || bm.RunnerName || "Unknown",
+//             b1: bm.b1 || bm.BackPrice1 || 1.9,
+//             bs1: bm.bs1 || bm.BackSize1 || 0,
+//             l1: bm.l1 || bm.LayPrice1 || 2.1,
+//             ls1: bm.ls1 || bm.LaySize1 || 0,
+//             min: bm.min || 100,
+//             max: bm.max || 50000,
+//             status: bm.s || bm.status || "OPEN",
+//           }));
+
+//           bulkOps.push({
+//             updateOne: {
+//               filter: { eventId: ev.eventId },
+//               update: {
+//                 $set: {
+//                   eventId: ev.eventId,
+//                   bookmaker,
+//                   fancy,
+//                   lastSyncedAt: new Date(),
+//                 },
+//               },
+//               upsert: true,
+//             },
+//           });
+//         } catch (innerErr) {
+//           console.error(
+//             `❌ [Fancy Sync] Event ${ev.eventId} failed:`,
+//             innerErr.message,
+//           );
+//         }
+//       }),
+//     );
+
+//     if (bulkOps.length > 0) {
+//       console.log(`  📝 Writing ${bulkOps.length} fancy documents...`);
+//       const result = await CricketFancyOdds.bulkWrite(bulkOps);
+//       console.log(
+//         `  ✅ Fancy Upserted: ${result.upsertedCount}, Modified: ${result.modifiedCount}`,
+//       );
+//     }
+
+//     console.log(`✅ [Fancy Sync] Complete - ${fancyCount} fancy markets total`);
+//   } catch (err) {
+//     console.error(
+//       "❌ [Cricket Fancy Sync] FATAL ERROR:",
+//       err.message,
+//       err.stack,
+//     );
+//   }
+// };
 export const syncCricketFancyBookmaker = async () => {
   try {
     const soon = new Date(Date.now() + 6 * 60 * 60 * 1000);
@@ -359,98 +461,81 @@ export const syncCricketFancyBookmaker = async () => {
       openDate: { $lte: soon },
     }).select("eventId");
 
+    console.log(`🟡 [Fancy Sync] Found ${events.length} events`);
+
     if (events.length === 0) {
-      console.log("ℹ️ [Fancy Sync] No cricket events");
+      console.log("⚠️ No events found");
       return;
     }
 
-    console.log(`🟡 [Fancy Sync] Found ${events.length} cricket events`);
-
     const bulkOps = [];
-    let fancyCount = 0;
 
-    await Promise.all(
-      events.map(async (ev) => {
-        try {
-          const { data } = await client.get(
-            `/fancy-bookmaker-odds/${ev.eventId}`,
-          );
+    for (const ev of events) {
+      // Sequential instead of parallel
+      try {
+        console.log(`  🔍 Event ${ev.eventId}`);
+        const { data } = await client.get(
+          `/fancy-bookmaker-odds/${ev.eventId}`,
+        );
 
-          const rawFancy = data?.fancy || [];
-          console.log(
-            `  Event ${ev.eventId}: ${rawFancy.length} fancy markets`,
-          );
+        const rawFancy = data?.fancy || [];
+        console.log(`  ✔️ Received ${rawFancy.length} fancy markets`);
 
-          if (rawFancy.length > 0) {
-            fancyCount += rawFancy.length;
-          }
+        if (rawFancy.length === 0) continue;
 
-          const fancy = rawFancy.map((f) => {
-            const item = typeof f === "string" ? JSON.parse(f) : f;
-            return {
-              selectionId: String(item.SelectionId || item.sid || "0"),
-              runnerName: item.RunnerName || item.nat || "Unknown",
-              gtype: item.gtype || "other",
-              backPrice: item.BackPrice1 || item.b1 || 1.9,
-              backSize: item.BackSize1 || item.bs1 || 0,
-              layPrice: item.LayPrice1 || item.l1 || 2.1,
-              laySize: item.LaySize1 || item.ls1 || 0,
-              min: item.min || 100,
-              max: item.max || 50000,
-              remark: item.rem || item.remark || "",
-            };
-          });
+        const fancy = rawFancy.map((f) => {
+          const item = typeof f === "string" ? JSON.parse(f) : f;
+          return {
+            selectionId: String(item.SelectionId || "0"),
+            runnerName: item.RunnerName || "",
+            gtype: item.gtype || "other",
+            backPrice: item.BackPrice1 || 0,
+            backSize: item.BackSize1 || 0,
+            layPrice: item.LayPrice1 || 0,
+            laySize: item.LaySize1 || 0,
+            min: item.min || 100,
+            max: item.max || 50000,
+            remark: item.rem || "",
+          };
+        });
 
-          const bookmaker = (data?.bookmaker || []).map((bm) => ({
-            sid: bm.sid || bm.SelectionId || "0",
-            nat: bm.nat || bm.RunnerName || "Unknown",
-            b1: bm.b1 || bm.BackPrice1 || 1.9,
-            bs1: bm.bs1 || bm.BackSize1 || 0,
-            l1: bm.l1 || bm.LayPrice1 || 2.1,
-            ls1: bm.ls1 || bm.LaySize1 || 0,
-            min: bm.min || 100,
-            max: bm.max || 50000,
-            status: bm.s || bm.status || "OPEN",
-          }));
+        console.log(`  📝 Mapped ${fancy.length} items`);
 
-          bulkOps.push({
-            updateOne: {
-              filter: { eventId: ev.eventId },
-              update: {
-                $set: {
-                  eventId: ev.eventId,
-                  bookmaker,
-                  fancy,
-                  lastSyncedAt: new Date(),
-                },
+        bulkOps.push({
+          updateOne: {
+            filter: { eventId: ev.eventId },
+            update: {
+              $set: {
+                eventId: ev.eventId,
+                fancy: fancy,
+                lastSyncedAt: new Date(),
               },
-              upsert: true,
             },
-          });
-        } catch (innerErr) {
-          console.error(
-            `❌ [Fancy Sync] Event ${ev.eventId} failed:`,
-            innerErr.message,
-          );
-        }
-      }),
-    );
-
-    if (bulkOps.length > 0) {
-      console.log(`  📝 Writing ${bulkOps.length} fancy documents...`);
-      const result = await CricketFancyOdds.bulkWrite(bulkOps);
-      console.log(
-        `  ✅ Fancy Upserted: ${result.upsertedCount}, Modified: ${result.modifiedCount}`,
-      );
+            upsert: true,
+          },
+        });
+      } catch (innerErr) {
+        console.error(`❌ Event ${ev.eventId}:`, innerErr.message);
+      }
     }
 
-    console.log(`✅ [Fancy Sync] Complete - ${fancyCount} fancy markets total`);
+    console.log(`  📊 Total bulkOps: ${bulkOps.length}`);
+
+    if (bulkOps.length > 0) {
+      try {
+        console.log("  🔄 Executing bulkWrite...");
+        const result = await CricketFancyOdds.bulkWrite(bulkOps);
+        console.log(
+          `  ✅ BulkWrite Result - Matched: ${result.matchedCount}, Upserted: ${result.upsertedCount}, Modified: ${result.modifiedCount}`,
+        );
+      } catch (bulkErr) {
+        console.error("❌ BulkWrite failed:", bulkErr.message);
+      }
+    }
+
+    console.log(`✅ [Fancy Sync] Complete`);
   } catch (err) {
-    console.error(
-      "❌ [Cricket Fancy Sync] FATAL ERROR:",
-      err.message,
-      err.stack,
-    );
+    console.error("❌ [Fancy Sync] FATAL:", err.message);
   }
 };
 
