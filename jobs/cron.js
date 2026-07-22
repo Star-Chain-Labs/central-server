@@ -1,34 +1,480 @@
+// import "dotenv/config";
+// import mongoose from "mongoose";
+// import { syncSports } from "./Syncsports.job.js";
+// import { syncCompetitions } from "./Synccompetitions.job.js";
+// import { syncEvents } from "./Syncevents.job.js";
+// import { syncMarkets } from "./Syncmarkets.job.js";
+// import { syncOdds } from "./Syncodds.job.js";
+// import { syncCricketFancyBookmaker } from "./Synccricketfancybookmaker.job.js";
+// import cron from "node-cron";
+
+// export const startSyncJobs = () => {
+//   syncSports();
+
+//   // 2) Competitions — every 60 minutes
+//   cron.schedule("0 * * * *", syncCompetitions);
+
+//   // 3) Events — every 12 minutes (within the 10-15 min window)
+//   cron.schedule("*/12 * * * *", syncEvents);
+
+//   // 4) Markets — every 6 minutes (within the 5-7 min window)
+//   cron.schedule("*/6 * * * *", syncMarkets);
+
+//   setInterval(syncOdds, 1000);
+
+//   setInterval(syncCricketFancyBookmaker, 1000);
+
+//   syncCompetitions();
+//   syncEvents();
+//   syncMarkets();
+
+//   console.log(
+//     "🔄 All sync jobs started (competitions:60m, events:12m, markets:6m, odds:1s, cricket-fancy:1s)",
+//   );
+// };
+
 import "dotenv/config";
 import mongoose from "mongoose";
-import { syncSports } from "./Syncsports.job.js";
-import { syncCompetitions } from "./Synccompetitions.job.js";
-import { syncEvents } from "./Syncevents.job.js";
-import { syncMarkets } from "./Syncmarkets.job.js";
-import { syncOdds } from "./Syncodds.job.js";
-import { syncCricketFancyBookmaker } from "./Synccricketfancybookmaker.job.js";
+import axios from "axios";
 import cron from "node-cron";
+import Sport from "../models/Sport.model.js";
+import Competition from "../models/Competition.model.js";
+import Event from "../models/event.model.js";
+import Market from "../models/Market.model.js";
+import Odds from "../models/Odds.model.js";
+import CricketFancyOdds from "../models/Cricketfancyodds.model.js";
 
+const PROVIDER_BASE = "http://167.99.82.136/api/betfair";
+const client = axios.create({ baseURL: PROVIDER_BASE, timeout: 15000 });
+
+// ========== SYNC SPORTS ==========
+export const syncSports = async () => {
+  try {
+    console.log("🟡 [Sports Sync] Starting...");
+    const sports = [
+      { sportId: "4", name: "Cricket", key: "cricket", isActive: true },
+      { sportId: "2", name: "Tennis", key: "tennis", isActive: true },
+      { sportId: "1", name: "Soccer", key: "soccer", isActive: true },
+    ];
+
+    let inserted = 0,
+      updated = 0;
+    for (const sport of sports) {
+      const result = await Sport.updateOne({ sportId: sport.sportId }, sport, {
+        upsert: true,
+      });
+      inserted += result.upsertedCount || 0;
+      updated += result.modifiedCount || 0;
+      console.log(
+        `  📝 ${sport.name} - Inserted: ${result.upsertedCount}, Updated: ${result.modifiedCount}`,
+      );
+    }
+    console.log(
+      `✅ [Sports Sync] Complete - Inserted: ${inserted}, Updated: ${updated}`,
+    );
+  } catch (err) {
+    console.error("❌ [Sports Sync] FATAL ERROR:", err.message, err.stack);
+  }
+};
+
+// ========== SYNC COMPETITIONS ==========
+export const syncCompetitions = async () => {
+  try {
+    console.log("🟡 [Competitions Sync] Starting...");
+    const sports = await Sport.find({ isActive: true });
+    console.log(`  Found ${sports.length} active sports`);
+
+    for (const sport of sports) {
+      try {
+        console.log(`  🔍 Fetching competitions for ${sport.name}...`);
+        const { data } = await client.get(`/competition-list/${sport.sportId}`);
+        const competitions = Array.isArray(data) ? data : [];
+        console.log(`  ✔️ Received ${competitions.length} competitions`);
+
+        if (competitions.length === 0) {
+          console.log(`  ⚠️ No competitions for ${sport.name}`);
+          continue;
+        }
+
+        const ops = competitions.map((c) => ({
+          updateOne: {
+            filter: {
+              sportId: sport.sportId,
+              competitionId: c.competition?.id || c.competitionId,
+            },
+            update: {
+              $set: {
+                competitionId: c.competition?.id || c.competitionId,
+                sportId: sport.sportId,
+                name: c.competition?.name || c.name || "Unknown",
+                region: c.competitionRegion || c.region || "",
+                marketCount: c.marketCount || 0,
+                lastSyncedAt: new Date(),
+              },
+            },
+            upsert: true,
+          },
+        }));
+
+        console.log(`  📝 Writing ${ops.length} operations to DB...`);
+        const result = await Competition.bulkWrite(ops);
+        console.log(
+          `  ✅ Competitions ${sport.name} - Matched: ${result.matchedCount}, Upserted: ${result.upsertedCount}, Modified: ${result.modifiedCount}`,
+        );
+      } catch (innerErr) {
+        console.error(
+          `❌ [Competitions Sync] ${sport.name} failed:`,
+          innerErr.message,
+        );
+      }
+    }
+    console.log(`✅ [Competitions Sync] Complete`);
+  } catch (err) {
+    console.error(
+      "❌ [Competitions Sync] FATAL ERROR:",
+      err.message,
+      err.stack,
+    );
+  }
+};
+
+// ========== SYNC EVENTS ==========
+export const syncEvents = async () => {
+  try {
+    console.log("🟡 [Events Sync] Starting...");
+    const sports = await Sport.find({ isActive: true });
+    console.log(`  Found ${sports.length} active sports`);
+
+    for (const sport of sports) {
+      try {
+        console.log(`  🔍 Fetching events for ${sport.name}...`);
+        const { data } = await client.get(`/event-list/${sport.sportId}`);
+        const events = Array.isArray(data) ? data : [];
+        console.log(`  ✔️ Received ${events.length} events`);
+
+        if (events.length === 0) {
+          console.log(`  ⚠️ No events for ${sport.name}`);
+          continue;
+        }
+
+        const ops = events.map((e) => ({
+          updateOne: {
+            filter: { eventId: e.event?.id || e.eventId },
+            update: {
+              $set: {
+                eventId: e.event?.id || e.eventId,
+                sportId: sport.sportId,
+                competitionId: e.competitionId || "",
+                name: e.event?.name || e.name || "Unknown",
+                countryCode: e.event?.countryCode || e.countryCode || "",
+                timezone: e.event?.timezone || e.timezone || "",
+                openDate: e.event?.openDate
+                  ? new Date(e.event.openDate)
+                  : new Date(),
+                marketCount: e.marketCount || 0,
+                isPremiumActive: e.isPremiumActive === "1" || false,
+                lastSyncedAt: new Date(),
+              },
+            },
+            upsert: true,
+          },
+        }));
+
+        console.log(`  📝 Writing ${ops.length} operations to DB...`);
+        const result = await Event.bulkWrite(ops);
+        console.log(
+          `  ✅ Events ${sport.name} - Matched: ${result.matchedCount}, Upserted: ${result.upsertedCount}, Modified: ${result.modifiedCount}`,
+        );
+      } catch (innerErr) {
+        console.error(
+          `❌ [Events Sync] ${sport.name} failed:`,
+          innerErr.message,
+        );
+      }
+    }
+    console.log(`✅ [Events Sync] Complete`);
+  } catch (err) {
+    console.error("❌ [Events Sync] FATAL ERROR:", err.message, err.stack);
+  }
+};
+
+// ========== SYNC MARKETS ==========
+export const syncMarkets = async () => {
+  try {
+    console.log("🟡 [Markets Sync] Starting...");
+    const soon = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    const events = await Event.find({ openDate: { $lte: soon } }).select(
+      "eventId sportId name",
+    );
+    console.log(`  Found ${events.length} events within 24h`);
+
+    let totalMarkets = 0;
+
+    for (const ev of events) {
+      try {
+        const { data } = await client.get(`/market-all-list/${ev.eventId}`);
+        const markets = Array.isArray(data) ? data : [];
+
+        if (markets.length === 0) continue;
+
+        const ops = markets.map((m) => ({
+          updateOne: {
+            filter: { marketId: m.marketId },
+            update: {
+              $set: {
+                marketId: m.marketId,
+                eventId: ev.eventId,
+                sportId: ev.sportId,
+                marketName: m.marketName || "Unknown",
+                runners: (m.runners || []).map((r) => ({
+                  selectionId: r.selectionId || 0,
+                  runnerName: r.runnerName || "Unknown",
+                  handicap: r.handicap || 0,
+                  sortPriority: r.sortPriority || 0,
+                })),
+                totalMatched: m.totalMatched || 0,
+                marketStartTime: m.marketStartTime
+                  ? new Date(m.marketStartTime)
+                  : undefined,
+                lastSyncedAt: new Date(),
+              },
+            },
+            upsert: true,
+          },
+        }));
+
+        console.log(
+          `  📝 Event ${ev.eventId}: Writing ${ops.length} markets...`,
+        );
+        const result = await Market.bulkWrite(ops);
+        totalMarkets += result.upsertedCount + result.modifiedCount;
+        console.log(
+          `    ✅ Upserted: ${result.upsertedCount}, Modified: ${result.modifiedCount}`,
+        );
+      } catch (innerErr) {
+        console.error(
+          `❌ [Markets Sync] Event ${ev.eventId} failed:`,
+          innerErr.message,
+        );
+      }
+    }
+
+    console.log(
+      `✅ [Markets Sync] Complete - Total: ${totalMarkets} markets synced`,
+    );
+  } catch (err) {
+    console.error("❌ [Markets Sync] FATAL ERROR:", err.message, err.stack);
+  }
+};
+
+// ========== SYNC ODDS ==========
+const chunk = (arr, size) => {
+  const out = [];
+  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
+  return out;
+};
+
+export const syncOdds = async () => {
+  try {
+    const soon = new Date(Date.now() + 6 * 60 * 60 * 1000);
+    const markets = await Market.find({
+      marketName: "Match Odds",
+      marketStartTime: { $lte: soon },
+    }).select("marketId eventId sportId");
+
+    if (markets.length === 0) {
+      console.log("ℹ️ [Odds Sync] No markets to update");
+      return;
+    }
+
+    console.log(`🟡 [Odds Sync] Found ${markets.length} markets`);
+
+    const marketIds = markets.map((m) => m.marketId);
+    const meta = Object.fromEntries(markets.map((m) => [m.marketId, m]));
+
+    const batches = chunk(marketIds, 10);
+    let totalOdds = 0;
+
+    for (const batch of batches) {
+      try {
+        const { data } = await client.post("/listMarketBook", {
+          marketIds: batch,
+        });
+        const books = data?.data || data || [];
+
+        const bulkOps = [];
+        for (const book of Array.isArray(books) ? books : [books]) {
+          const m = meta[book.marketId];
+          if (!m) continue;
+
+          bulkOps.push({
+            updateOne: {
+              filter: { marketId: book.marketId },
+              update: {
+                $set: {
+                  marketId: book.marketId,
+                  eventId: m.eventId,
+                  sportId: m.sportId,
+                  status: book.status || "OPEN",
+                  inPlay: !!book.inplay,
+                  totalMatched: book.totalMatched || 0,
+                  runners: (book.runners || []).map((r) => ({
+                    selectionId: r.selectionId,
+                    status: r.status || "ACTIVE",
+                    availableToBack: r.ex?.availableToBack || [],
+                    availableToLay: r.ex?.availableToLay || [],
+                  })),
+                  lastSyncedAt: new Date(),
+                },
+              },
+              upsert: true,
+            },
+          });
+        }
+
+        if (bulkOps.length > 0) {
+          const result = await Odds.bulkWrite(bulkOps);
+          totalOdds += result.upsertedCount + result.modifiedCount;
+          console.log(
+            `  📝 Batch: Upserted ${result.upsertedCount}, Modified ${result.modifiedCount}`,
+          );
+        }
+      } catch (batchErr) {
+        console.error("❌ [Odds Sync] Batch failed:", batchErr.message);
+      }
+    }
+
+    console.log(`✅ [Odds Sync] Complete - Total: ${totalOdds} odds synced`);
+  } catch (err) {
+    console.error("❌ [Odds Sync] FATAL ERROR:", err.message, err.stack);
+  }
+};
+
+// ========== SYNC CRICKET FANCY ==========
+export const syncCricketFancyBookmaker = async () => {
+  try {
+    const soon = new Date(Date.now() + 6 * 60 * 60 * 1000);
+    const events = await Event.find({
+      sportId: "4",
+      openDate: { $lte: soon },
+    }).select("eventId");
+
+    if (events.length === 0) {
+      console.log("ℹ️ [Fancy Sync] No cricket events");
+      return;
+    }
+
+    console.log(`🟡 [Fancy Sync] Found ${events.length} cricket events`);
+
+    const bulkOps = [];
+    let fancyCount = 0;
+
+    await Promise.all(
+      events.map(async (ev) => {
+        try {
+          const { data } = await client.get(
+            `/fancy-bookmaker-odds/${ev.eventId}`,
+          );
+
+          const rawFancy = data?.fancy || [];
+          console.log(
+            `  Event ${ev.eventId}: ${rawFancy.length} fancy markets`,
+          );
+
+          if (rawFancy.length > 0) {
+            fancyCount += rawFancy.length;
+          }
+
+          const fancy = rawFancy.map((f) => {
+            const item = typeof f === "string" ? JSON.parse(f) : f;
+            return {
+              selectionId: String(item.SelectionId || item.sid || "0"),
+              runnerName: item.RunnerName || item.nat || "Unknown",
+              gtype: item.gtype || "other",
+              backPrice: item.BackPrice1 || item.b1 || 1.9,
+              backSize: item.BackSize1 || item.bs1 || 0,
+              layPrice: item.LayPrice1 || item.l1 || 2.1,
+              laySize: item.LaySize1 || item.ls1 || 0,
+              min: item.min || 100,
+              max: item.max || 50000,
+              remark: item.rem || item.remark || "",
+            };
+          });
+
+          const bookmaker = (data?.bookmaker || []).map((bm) => ({
+            sid: bm.sid || bm.SelectionId || "0",
+            nat: bm.nat || bm.RunnerName || "Unknown",
+            b1: bm.b1 || bm.BackPrice1 || 1.9,
+            bs1: bm.bs1 || bm.BackSize1 || 0,
+            l1: bm.l1 || bm.LayPrice1 || 2.1,
+            ls1: bm.ls1 || bm.LaySize1 || 0,
+            min: bm.min || 100,
+            max: bm.max || 50000,
+            status: bm.s || bm.status || "OPEN",
+          }));
+
+          bulkOps.push({
+            updateOne: {
+              filter: { eventId: ev.eventId },
+              update: {
+                $set: {
+                  eventId: ev.eventId,
+                  bookmaker,
+                  fancy,
+                  lastSyncedAt: new Date(),
+                },
+              },
+              upsert: true,
+            },
+          });
+        } catch (innerErr) {
+          console.error(
+            `❌ [Fancy Sync] Event ${ev.eventId} failed:`,
+            innerErr.message,
+          );
+        }
+      }),
+    );
+
+    if (bulkOps.length > 0) {
+      console.log(`  📝 Writing ${bulkOps.length} fancy documents...`);
+      const result = await CricketFancyOdds.bulkWrite(bulkOps);
+      console.log(
+        `  ✅ Fancy Upserted: ${result.upsertedCount}, Modified: ${result.modifiedCount}`,
+      );
+    }
+
+    console.log(`✅ [Fancy Sync] Complete - ${fancyCount} fancy markets total`);
+  } catch (err) {
+    console.error(
+      "❌ [Cricket Fancy Sync] FATAL ERROR:",
+      err.message,
+      err.stack,
+    );
+  }
+};
+
+// ========== START ALL JOBS ==========
 export const startSyncJobs = () => {
+  console.log("🔄 [Sync Manager] Initializing sync jobs...\n");
+
   syncSports();
 
-  // 2) Competitions — every 60 minutes
   cron.schedule("0 * * * *", syncCompetitions);
-
-  // 3) Events — every 12 minutes (within the 10-15 min window)
   cron.schedule("*/12 * * * *", syncEvents);
-
-  // 4) Markets — every 6 minutes (within the 5-7 min window)
   cron.schedule("*/6 * * * *", syncMarkets);
 
   setInterval(syncOdds, 1000);
-
   setInterval(syncCricketFancyBookmaker, 1000);
 
   syncCompetitions();
   syncEvents();
   syncMarkets();
 
-  console.log(
-    "🔄 All sync jobs started (competitions:60m, events:12m, markets:6m, odds:1s, cricket-fancy:1s)",
-  );
+  console.log("\n✅ [Sync Manager] All jobs started!");
+  console.log("   Competitions: every 60 minutes");
+  console.log("   Events: every 12 minutes");
+  console.log("   Markets: every 6 minutes");
+  console.log("   Odds: every 1 second");
+  console.log("   Fancy: every 1 second\n");
 };
