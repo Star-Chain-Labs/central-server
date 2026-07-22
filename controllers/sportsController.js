@@ -1,9 +1,9 @@
-// import Competition from "../models/Competition.model.js";
-// import Event from "../models/event.model.js";
-// import FancyMarket from "../models/fancyMarket.model.js";
-// import Market from "../models/Market.model.js";
-// import Odds from "../models/Odds.model.js";
-// import Sport from "../models/Sport.model.js";
+import Competition from "../models/Competition.model.js";
+import Event from "../models/event.model.js";
+import FancyMarket from "../models/fancyMarket.model.js";
+import Market from "../models/Market.model.js";
+import Odds from "../models/Odds.model.js";
+import Sport from "../models/Sport.model.js";
 
 // /**
 //  * GET /api/sports
@@ -300,18 +300,6 @@
 //   }
 // };
 
-import {
-  Sport,
-  Competition,
-  Event,
-  Market,
-  Odds,
-  FancyMarket,
-} from "../models/Sports.js";
-
-/**
- * GET /api/sports
- */
 export const getSports = async (req, res) => {
   try {
     const sports = await Sport.find({ isActive: true }).lean();
