@@ -1,4 +1,5 @@
 import Competition from "../models/Competition.model.js";
+import CricketFancyOdds from "../models/Cricketfancyodds.model.js";
 import Event from "../models/event.model.js";
 import FancyMarket from "../models/fancyMarket.model.js";
 import Market from "../models/Market.model.js";
@@ -605,45 +606,45 @@ export const getFancyOdds = async (req, res) => {
   try {
     const { eventId } = req.params;
 
-    const fancy = await FancyMarket.find({
-      matchId: eventId,
-      status: "OPEN",
-    }).lean();
-
-    if (fancy.length === 0) {
-      return res.status(200).json({
-        bookmaker: [],
-        fancy: [],
-        status: true,
-        error: false,
-      });
+    const doc = await CricketFancyOdds.findOne({ eventId }).lean();
+    if (!doc) {
+      return res
+        .status(200)
+        .json({ bookmaker: [], fancy: [], status: true, error: false });
     }
-
-    const fancyFormatted = fancy.map((f) => ({
-      SelectionId: f.fancyId,
-      RunnerName: f.question,
-      gtype: f.category,
-      BackPrice1: f.yesOdds,
-      BackSize1: 0,
-      LayPrice1: f.noOdds,
-      LaySize1: 0,
-      min: f.minBet,
-      max: f.maxBet,
-      rem: "",
+    const bookmaker = doc.bookmaker.map((b) => ({
+      sid: b.sid,
+      nat: b.nat,
+      b1: b.b1,
+      bs1: b.bs1,
+      l1: b.l1,
+      ls1: b.ls1,
+      min: b.min,
+      max: b.max,
+      s: b.status,
     }));
 
-    return res.status(200).json({
-      bookmaker: [],
-      fancy: fancyFormatted,
-      status: true,
-      error: false,
-    });
+    const fancy = doc.fancy.map((f) => ({
+      SelectionId: f.selectionId,
+      RunnerName: f.runnerName,
+      gtype: f.gtype,
+      BackPrice1: f.backPrice,
+      BackSize1: f.backSize,
+      LayPrice1: f.layPrice,
+      LaySize1: f.laySize,
+      min: f.min,
+      max: f.max,
+      rem: f.remark,
+    }));
+
+    return res
+      .status(200)
+      .json({ bookmaker, fancy, status: true, error: false });
   } catch (err) {
-    console.error("getFancyOdds error:", err.message);
-    return res.status(500).json({
-      status: false,
-      msg: "Failed to fetch bookmaker/fancy",
-    });
+    console.error("getFancyBookmakerOddsFromDb error:", err.message);
+    return res
+      .status(500)
+      .json({ success: false, msg: "Failed to fetch bookmaker/fancy" });
   }
 };
 
