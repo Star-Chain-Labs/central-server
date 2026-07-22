@@ -209,7 +209,7 @@ const PORT = process.env.PORT || 3334;
 
 // ============= ACCESS CONTROL =============
 const getAllowedAccess = () => {
-  const allowed = (process.env.ALLOWED_ACCESS || "")
+  const allowed = (process.env.ALLOWED_DOMAINS || "")
     .split(",")
     .map((a) => a.trim())
     .filter(Boolean);
