@@ -453,22 +453,108 @@ export const syncOdds = async () => {
 //     );
 //   }
 // };
+// export const syncCricketFancyBookmaker = async () => {
+//   try {
+//     const soon = new Date(Date.now() + 6 * 60 * 60 * 1000);
+//     const events = await Event.find({
+//       sportId: "4",
+//       openDate: { $lte: soon },
+//     }).select("eventId");
+
+//     console.log(`🟡 [Fancy Sync] Found ${events.length} events`);
+
+//     if (events.length === 0) {
+//       console.log("⚠️ No events found");
+//       return;
+//     }
+
+//     const bulkOps = [];
+
+//     for (const ev of events) {
+//       // Sequential instead of parallel
+//       try {
+//         console.log(`  🔍 Event ${ev.eventId}`);
+//         const { data } = await client.get(
+//           `/fancy-bookmaker-odds/${ev.eventId}`,
+//         );
+
+//         const rawFancy = data?.fancy || [];
+//         console.log(`  ✔️ Received ${rawFancy.length} fancy markets`);
+
+//         if (rawFancy.length === 0) continue;
+
+//         const fancy = rawFancy.map((f) => {
+//           const item = typeof f === "string" ? JSON.parse(f) : f;
+//           return {
+//             selectionId: String(item.SelectionId || "0"),
+//             runnerName: item.RunnerName || "",
+//             gtype: item.gtype || "other",
+//             backPrice: item.BackPrice1 || 0,
+//             backSize: item.BackSize1 || 0,
+//             layPrice: item.LayPrice1 || 0,
+//             laySize: item.LaySize1 || 0,
+//             min: item.min || 100,
+//             max: item.max || 50000,
+//             remark: item.rem || "",
+//           };
+//         });
+
+//         console.log(`  📝 Mapped ${fancy.length} items`);
+
+//         bulkOps.push({
+//           updateOne: {
+//             filter: { eventId: ev.eventId },
+//             update: {
+//               $set: {
+//                 eventId: ev.eventId,
+//                 fancy: fancy,
+//                 lastSyncedAt: new Date(),
+//               },
+//             },
+//             upsert: true,
+//           },
+//         });
+//       } catch (innerErr) {
+//         console.error(`❌ Event ${ev.eventId}:`, innerErr.message);
+//       }
+//     }
+
+//     console.log(`  📊 Total bulkOps: ${bulkOps.length}`);
+
+//     if (bulkOps.length > 0) {
+//       try {
+//         console.log("  🔄 Executing bulkWrite...");
+//         const result = await CricketFancyOdds.bulkWrite(bulkOps);
+//         console.log(
+//           `  ✅ BulkWrite Result - Matched: ${result.matchedCount}, Upserted: ${result.upsertedCount}, Modified: ${result.modifiedCount}`,
+//         );
+//       } catch (bulkErr) {
+//         console.error("❌ BulkWrite failed:", bulkErr.message);
+//       }
+//     }
+
+//     console.log(`✅ [Fancy Sync] Complete`);
+//   } catch (err) {
+//     console.error("❌ [Fancy Sync] FATAL:", err.message);
+//   }
+// };
+
 export const syncCricketFancyBookmaker = async () => {
   try {
-    const soon = new Date(Date.now() + 6 * 60 * 60 * 1000);
+    // ✅ REMOVED time constraint - sync ALL cricket events
     const events = await Event.find({
       sportId: "4",
-      openDate: { $lte: soon },
     }).select("eventId");
 
-    console.log(`🟡 [Fancy Sync] Found ${events.length} events`);
+    console.log(`🟡 [Fancy Sync] Found ${events.length} cricket events`);
 
     if (events.length === 0) {
-      console.log("⚠️ No events found");
+      console.log("⚠️ No cricket events found");
       return;
     }
 
     const bulkOps = [];
+    let totalFancy = 0;
 
     for (const ev of events) {
       // Sequential instead of parallel
@@ -482,6 +568,8 @@ export const syncCricketFancyBookmaker = async () => {
         console.log(`  ✔️ Received ${rawFancy.length} fancy markets`);
 
         if (rawFancy.length === 0) continue;
+
+        totalFancy += rawFancy.length;
 
         const fancy = rawFancy.map((f) => {
           const item = typeof f === "string" ? JSON.parse(f) : f;
@@ -520,6 +608,7 @@ export const syncCricketFancyBookmaker = async () => {
     }
 
     console.log(`  📊 Total bulkOps: ${bulkOps.length}`);
+    console.log(`  📊 Total fancy markets: ${totalFancy}`);
 
     if (bulkOps.length > 0) {
       try {
@@ -533,12 +622,11 @@ export const syncCricketFancyBookmaker = async () => {
       }
     }
 
-    console.log(`✅ [Fancy Sync] Complete`);
+    console.log(`✅ [Fancy Sync] Complete - ${totalFancy} total fancy markets`);
   } catch (err) {
     console.error("❌ [Fancy Sync] FATAL:", err.message);
   }
 };
-
 // ========== START ALL JOBS ==========
 export const startSyncJobs = () => {
   console.log("🔄 [Sync Manager] Initializing sync jobs...\n");
