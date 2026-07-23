@@ -82,14 +82,13 @@
 //     console.error("❌ [Odds Sync] fatal error:", err.message);
 //   }
 // };
-
 import axios from "axios";
 import Market from "../models/Market.model.js";
 import Odds from "../models/Odds.model.js";
 
 const PROVIDER_BASE = "http://167.99.82.136/api/betfair";
 
-// ✅ FIX 1: timeout 800ms — isse zyada laga to data stale maana jayega
+// ✅ FIX 1: timeout 800ms
 const client = axios.create({ baseURL: PROVIDER_BASE, timeout: 800 });
 
 const chunk = (arr, size) => {
@@ -98,31 +97,35 @@ const chunk = (arr, size) => {
   return out;
 };
 
-// ✅ FIX 2: Lock guard — pichla cycle khatam hue bina naya start nahi hoga
-// Bina iske har second nayi call stack pe aati thi → race condition → wrong odds
+// ✅ FIX 2: Lock guard
 let isRunning = false;
 
-// ✅ FIX 3: Market cache — har second Mongo hit karne ki zarurat nahi
+// ✅ FIX 3: Market cache — 30 seconds
 let marketMetaCache = {};
 let marketCacheAt = 0;
-const MARKET_CACHE_MS = 30000; // 30 seconds
+const MARKET_CACHE_MS = 30000;
 
 const getMarketMeta = async () => {
   if (Date.now() - marketCacheAt < MARKET_CACHE_MS) return marketMetaCache;
 
+  // ✅ CHANGE: Sirf aaj + kal ke markets — 250+ → ~30 markets
+  // Future wale markets pe API call waste hai, wahan odds nahi aate
+  const soon = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
   const markets = await Market.find({
     marketName: "Match Odds",
+    marketStartTime: { $lte: soon }, // ← YAHI EK LINE ADD HUI
   })
     .select("marketId eventId sportId")
     .lean();
 
   marketMetaCache = Object.fromEntries(markets.map((m) => [m.marketId, m]));
   marketCacheAt = Date.now();
+  console.log(`♻️ [Odds] Market cache: ${markets.length} markets`);
   return marketMetaCache;
 };
 
 export const syncOdds = async () => {
-  // ✅ FIX 2: Agar pichla cycle abhi chal raha hai to skip karo
   if (isRunning) return;
   isRunning = true;
 
@@ -136,9 +139,7 @@ export const syncOdds = async () => {
 
     const batches = chunk(marketIds, 10);
 
-    // ✅ FIX 4: Saare batches PARALLEL (sequential nahi)
-    // Sequential mein 25 batches × 800ms = 20 second lag rahe the
-    // Parallel mein sab ek saath — sirf 1 round trip
+    // ✅ Saare batches PARALLEL
     const results = await Promise.allSettled(
       batches.map((batch) =>
         client.post("/listMarketBook", { marketIds: batch }),
@@ -148,9 +149,6 @@ export const syncOdds = async () => {
     const bulkOps = [];
 
     for (const r of results) {
-      // ✅ FIX 5: Timeout/error → skip this batch
-      // Purana data overwrite nahi hoga — DB mein jo hai wo rahega
-      // Controller mein lastSyncedAt check se SUSPENDED serve hoga
       if (r.status === "rejected") continue;
 
       const books = r.value.data?.data || r.value.data || [];
@@ -176,7 +174,7 @@ export const syncOdds = async () => {
                   availableToBack: r2.ex?.availableToBack || [],
                   availableToLay: r2.ex?.availableToLay || [],
                 })),
-                lastSyncedAt: new Date(), // 👈 Controller isko check karega staleness ke liye
+                lastSyncedAt: new Date(),
               },
             },
             upsert: true,
