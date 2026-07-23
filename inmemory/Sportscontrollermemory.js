@@ -1,4 +1,3 @@
-// controllers/sportsController.js
 import Competition from "../models/Competition.model.js";
 import Event from "../models/event.model.js";
 import FancyMarket from "../models/fancyMarket.model.js";
@@ -13,7 +12,7 @@ import {
   isOddsStale,
   isFancyStale,
   getStoreStats,
-} from "./OddsStore.js";
+} from "./Oddsstore.js";
 
 const STALE_MS = 2500;
 

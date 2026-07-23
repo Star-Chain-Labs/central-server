@@ -10,10 +10,8 @@ import {
   getHealth,
   getStats,
 } from "../inmemory/Sportscontrollermemory.js";
-
 const router = express.Router();
 
-// Sports
 router.get("/sports", getSports);
 router.get("/competition-list/:sportId", getCompetitionList);
 router.get("/event-list/:sportId", getEventList);

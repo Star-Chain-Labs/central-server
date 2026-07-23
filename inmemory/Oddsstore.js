@@ -1,6 +1,3 @@
-// store/oddsStore.js
-// Shared in-memory store — DB ki zarurat nahi odds/fancy ke liye
-
 const oddsStore = new Map(); // marketId → odds data + timestamp
 const fancyStore = new Map(); // eventId  → fancy data + timestamp
 const marketMeta = new Map(); // marketId → { eventId, sportId, runners }
