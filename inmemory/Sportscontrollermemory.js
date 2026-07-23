@@ -13,7 +13,7 @@ import {
   isOddsStale,
   isFancyStale,
   getStoreStats,
-} from "../store/oddsStore.js";
+} from "./OddsStore.js";
 
 const STALE_MS = 2500;
 
