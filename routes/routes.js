@@ -9,7 +9,7 @@ import {
   getSports,
   getHealth,
   getStats,
-} from "../controllers/sportsController.js";
+} from "../inmemory/Sportscontrollermemory.js";
 
 const router = express.Router();
 

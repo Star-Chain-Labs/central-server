@@ -22,9 +22,6 @@ export const getSports = async (req, res) => {
   }
 };
 
-/**
- * GET /api/competition-list/:sportId
- */
 export const getCompetitionList = async (req, res) => {
   try {
     const { sportId } = req.params;
@@ -53,9 +50,6 @@ export const getCompetitionList = async (req, res) => {
   }
 };
 
-/**
- * GET /api/event-list/:sportId
- */
 export const getEventList = async (req, res) => {
   try {
     const { sportId } = req.params;
@@ -141,9 +135,6 @@ export const getEventList = async (req, res) => {
   }
 };
 
-/**
- * GET /api/event-list/:sportId/:competitionId
- */
 export const getEventListByCompetition = async (req, res) => {
   try {
     const { sportId, competitionId } = req.params;
@@ -176,9 +167,6 @@ export const getEventListByCompetition = async (req, res) => {
   }
 };
 
-/**
- * GET /api/market-all-list/:eventId
- */
 export const getMarketAllList = async (req, res) => {
   try {
     const { eventId } = req.params;
@@ -205,9 +193,6 @@ export const getMarketAllList = async (req, res) => {
   }
 };
 
-/**
- * GET /api/market-odds/:eventId/:marketId
- */
 export const getMarketOdds = async (req, res) => {
   try {
     const { marketId } = req.params;
@@ -233,9 +218,6 @@ export const getMarketOdds = async (req, res) => {
   }
 };
 
-/**
- * GET /api/fancy-all-bookmaker-odds-v3/:eventId
- */
 export const getFancyOddsV3 = async (req, res) => {
   try {
     const { eventId } = req.params;
@@ -304,9 +286,6 @@ export const getFancyOddsV3 = async (req, res) => {
   }
 };
 
-/**
- * GET /api/fancy-bookmaker-odds/:eventId
- */
 export const getFancyOdds = async (req, res) => {
   try {
     const { eventId } = req.params;
@@ -353,9 +332,6 @@ export const getFancyOdds = async (req, res) => {
   }
 };
 
-/**
- * GET /api/health
- */
 export const getHealth = async (req, res) => {
   return res.status(200).json({
     status: true,
@@ -366,9 +342,6 @@ export const getHealth = async (req, res) => {
   });
 };
 
-/**
- * GET /api/stats
- */
 export const getStats = async (req, res) => {
   try {
     const stats = {
