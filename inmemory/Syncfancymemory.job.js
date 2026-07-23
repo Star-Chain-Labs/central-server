@@ -1,7 +1,7 @@
 // jobs/Syncfancy.job.js
 import axios from "axios";
 import Event from "../models/event.model.js";
-import { setFancy } from "./oddsStore.js";
+import { setFancy } from "./Oddsstore.js";
 
 const PROVIDER_BASE = "http://167.99.82.136/api/betfair";
 const client = axios.create({ baseURL: PROVIDER_BASE, timeout: 1500 });
