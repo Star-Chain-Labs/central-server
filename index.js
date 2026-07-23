@@ -33,7 +33,6 @@ const corsMiddleware = (req, res, next) => {
   if (isAllowed || !origin) {
     res.header("Access-Control-Allow-Origin", origin || "*");
     res.header("Access-Control-Allow-Credentials", "true");
-    console.log(`✅ CORS: Headers Set\n`);
   } else {
     console.log(`⚠️ CORS: Origin not in whitelist\n`);
   }
