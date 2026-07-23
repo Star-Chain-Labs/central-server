@@ -20,9 +20,6 @@ const getAllowedAccess = () => {
 const corsMiddleware = (req, res, next) => {
   const origin = req.get("origin");
   const allowedList = getAllowedAccess();
-  console.log(`\n🌐 [CORS Check]`);
-  console.log(`   Origin: ${origin}`);
-  console.log(`   Allowed: ${allowedList.join(", ")}`);
 
   // Extract domain from origin
   const originDomain = origin?.replace(/https?:\/\//, "").split(":")[0] || "";
@@ -90,13 +87,9 @@ const accessControl = (req, res, next) => {
     return next();
   }
 
-  console.log(`❌ ACCESS DENIED\n`);
   return res.status(403).json({
     status: false,
     msg: "Access denied - Not whitelisted",
-    your_ip: clientIP,
-    your_origin: origin,
-    your_domain: originDomain,
   });
 };
 
