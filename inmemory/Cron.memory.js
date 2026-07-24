@@ -12,6 +12,7 @@ import {
   cleanupOldMatches,
   cleanupStaleEntries,
 } from "../controllers/deleteOldMatches.js";
+
 const PROVIDER_BASE = process.env.CLIENT_API_URL;
 const client = axios.create({ baseURL: PROVIDER_BASE, timeout: 15000 });
 export const syncSports = async () => {
