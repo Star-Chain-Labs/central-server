@@ -38,6 +38,7 @@ export const syncCompetitions = async () => {
     const sports = await Sport.find({ isActive: true });
     for (const sport of sports) {
       try {
+        console.log(client, "client");
         const { data } = await client.get(`/competition-list/${sport.sportId}`);
         const competitions = Array.isArray(data) ? data : [];
         if (competitions.length === 0) continue;
@@ -156,58 +157,24 @@ export const syncMarkets = async () => {
   } catch (err) {}
 };
 
-// export const startSyncJobs = () => {
-//   syncSports();
+export const startSyncJobs = () => {
+  syncSports();
 
-//   cron.schedule("0 * * * *", syncCompetitions);
-//   cron.schedule("*/12 * * * *", syncEvents);
-//   cron.schedule("*/6 * * * *", syncMarkets);
-//   cron.schedule("0 0 * * *", cleanupOldMatches);
-//   setInterval(cleanupStaleEntries, 5 * 60 * 1000);
-
-//   setInterval(syncCricketOdds, 1000);
-
-//   setInterval(syncOtherOdds, 2000);
-
-//   setInterval(syncCricketFancyBookmaker, 1000);
-
-//   syncCompetitions();
-//   syncEvents();
-//   syncMarkets();
-
-//   console.log("✅ All sync jobs started!");
-//   console.log("   Cricket Odds: 1s | Tennis+Soccer: 2s | Fancy: 1s");
-// };
-
-export const startSyncJobs = async () => {
-  console.log("🔄 Running initial sync...");
-
-  // ✅ Sequential — ek ke baad ek chalega
-  await syncSports();
-  console.log("✅ Sports synced");
-
-  await syncCompetitions();
-  console.log("✅ Competitions synced");
-
-  await syncEvents();
-  console.log("✅ Events synced");
-
-  await syncMarkets();
-  console.log("✅ Markets synced");
-
-  console.log("✅ Initial sync complete\n");
-
-  // ✅ Ab schedules setup karo
   cron.schedule("0 * * * *", syncCompetitions);
   cron.schedule("*/12 * * * *", syncEvents);
   cron.schedule("*/6 * * * *", syncMarkets);
   cron.schedule("0 0 * * *", cleanupOldMatches);
   setInterval(cleanupStaleEntries, 5 * 60 * 1000);
 
-  // ✅ Ab live intervals start karo (DB fill ho chuki hai)
   setInterval(syncCricketOdds, 1000);
+
   setInterval(syncOtherOdds, 2000);
+
   setInterval(syncCricketFancyBookmaker, 1000);
+
+  syncCompetitions();
+  syncEvents();
+  syncMarkets();
 
   console.log("✅ All sync jobs started!");
   console.log("   Cricket Odds: 1s | Tennis+Soccer: 2s | Fancy: 1s");

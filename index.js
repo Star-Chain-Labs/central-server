@@ -313,8 +313,7 @@ const startServer = async () => {
   // ✅ ADD - Init WebSocket BEFORE listen
   initSocketServer(httpServer);
 
-  // startSyncJobs();
-  await startSyncJobs();
+  startSyncJobs();
 
   const allowedList = getAllowedAccess();
 
