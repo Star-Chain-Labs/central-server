@@ -14,6 +14,7 @@ import {
 } from "../controllers/deleteOldMatches.js";
 
 const PROVIDER_BASE = process.env.CLIENT_API_URL;
+console.log(PROVIDER_BASE, "cnskcns");
 const client = axios.create({ baseURL: PROVIDER_BASE, timeout: 15000 });
 export const syncSports = async () => {
   try {
