@@ -21,10 +21,8 @@ router.get("/market-all-list/:eventId", getMarketAllList);
 // Odds
 router.get("/market-odds/:eventId/:marketId", async (req, res) => {
   const { marketId } = req.params;
-  // Direct controller call
 });
 
-// Fancy Odds
 router.get("/fancy-all-bookmaker-odds-v3/:eventId", getFancyOddsV3);
 router.get("/fancy-bookmaker-odds/:eventId", getFancyOdds);
 

@@ -1,7 +1,7 @@
 import axios from "axios";
 import Sport from "../models/Sport.model.js";
 import Event from "../models/event.model.js";
-const PROVIDER_BASE = "http://167.99.82.136/api/betfair";
+const PROVIDER_BASE = process.env.CLIENT_API_URL;
 const client = axios.create({ baseURL: PROVIDER_BASE, timeout: 15000 });
 export const syncEvents = async () => {
   try {

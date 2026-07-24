@@ -10,7 +10,7 @@
 // import CricketFancyOdds from "../models/Cricketfancyodds.model.js";
 // import { cleanupOldMatches } from "../controllers/deleteOldMatches.js";
 
-// const PROVIDER_BASE = "http://167.99.82.136/api/betfair";
+// const PROVIDER_BASE = process.env.CLIENT_API_URL
 // const client = axios.create({ baseURL: PROVIDER_BASE, timeout: 15000 });
 
 // // ========== SYNC SPORTS ==========
@@ -375,7 +375,7 @@ import { syncOdds } from "./Syncodds.job.js";
 import { syncCricketFancyBookmaker } from "./Syncfancy.job.js";
 import { cleanupOldMatches } from "../controllers/deleteOldMatches.js";
 
-const PROVIDER_BASE = "http://167.99.82.136/api/betfair";
+const PROVIDER_BASE = process.env.CLIENT_API_URL;
 const client = axios.create({ baseURL: PROVIDER_BASE, timeout: 15000 });
 
 // ========== SYNC SPORTS ==========

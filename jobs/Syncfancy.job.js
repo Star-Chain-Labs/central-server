@@ -2,7 +2,7 @@
 // import Event from "../models/event.model.js";
 // import redis, { FANCY_TTL_MS } from "../config/redis.js";
 
-// const PROVIDER_BASE = "http://167.99.82.136/api/betfair";
+// const PROVIDER_BASE = process.env.CLIENT_API_URL
 // const client = axios.create({ baseURL: PROVIDER_BASE, timeout: 900 });
 
 // let isRunning = false;
@@ -121,7 +121,7 @@ import axios from "axios";
 import Event from "../models/event.model.js";
 import CricketFancyOdds from "../models/Cricketfancyodds.model.js";
 
-const PROVIDER_BASE = "http://167.99.82.136/api/betfair";
+const PROVIDER_BASE = process.env.CLIENT_API_URL;
 
 // ✅ FIX 1: timeout 900ms
 const client = axios.create({ baseURL: PROVIDER_BASE, timeout: 900 });

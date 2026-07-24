@@ -2,7 +2,7 @@
 // import Market from "../models/Market.model.js";
 // import Odds from "../models/Odds.model.js";
 
-// const PROVIDER_BASE = "http://167.99.82.136/api/betfair";
+// const PROVIDER_BASE =process.env.CLIENT_API_URL
 // const client = axios.create({ baseURL: PROVIDER_BASE, timeout: 8000 });
 
 // // listMarketBook accepts max 10 marketIds per call — chunk requests
@@ -87,7 +87,7 @@ import axios from "axios";
 import Market from "../models/Market.model.js";
 import Odds from "../models/Odds.model.js";
 
-const PROVIDER_BASE = "http://167.99.82.136/api/betfair";
+const PROVIDER_BASE = process.env.CLIENT_API_URL;
 
 // ✅ FIX 1: timeout 800ms
 const client = axios.create({ baseURL: PROVIDER_BASE, timeout: 800 });

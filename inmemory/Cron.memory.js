@@ -8,9 +8,12 @@ import Event from "../models/event.model.js";
 import Market from "../models/Market.model.js";
 import { syncCricketOdds, syncOtherOdds } from "./Syncoddsmemory.job.js";
 import { syncCricketFancyBookmaker } from "./Syncfancymemory.job.js";
-import { cleanupOldMatches } from "../controllers/deleteOldMatches.js";
+import {
+  cleanupOldMatches,
+  cleanupStaleEntries,
+} from "../controllers/deleteOldMatches.js";
 
-const PROVIDER_BASE = "http://167.99.82.136/api/betfair";
+const PROVIDER_BASE = process.env.CLIENT_API_URL;
 const client = axios.create({ baseURL: PROVIDER_BASE, timeout: 15000 });
 
 // ========== SYNC SPORTS ==========
@@ -165,14 +168,12 @@ export const startSyncJobs = () => {
   cron.schedule("*/12 * * * *", syncEvents);
   cron.schedule("*/6 * * * *", syncMarkets);
   cron.schedule("0 0 * * *", cleanupOldMatches);
+  setInterval(cleanupStaleEntries, 5 * 60 * 1000);
 
-  // ✅ Cricket - har 1 second (PRIORITY)
   setInterval(syncCricketOdds, 1000);
 
-  // ✅ Tennis+Soccer - har 2 second
   setInterval(syncOtherOdds, 2000);
 
-  // ✅ Fancy - har 1 second
   setInterval(syncCricketFancyBookmaker, 1000);
 
   syncCompetitions();
