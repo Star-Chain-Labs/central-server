@@ -158,6 +158,8 @@ export const syncMarkets = async () => {
 
 export const startSyncJobs = () => {
   syncSports();
+  console.log("✅ Sports synced!");
+  console.log(process.env.CLIENT_API_URL, "API URL");
 
   cron.schedule("0 * * * *", syncCompetitions);
   cron.schedule("*/12 * * * *", syncEvents);
