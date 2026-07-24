@@ -310,11 +310,10 @@ app.get("/access-info", (req, res) => {
 const startServer = async () => {
   await connectDB();
 
-  // ✅ ADD - Init WebSocket BEFORE listen
   initSocketServer(httpServer);
 
-  // startSyncJobs();
-  await startSyncJobs();
+  startSyncJobs();
+  // await startSyncJobs();
 
   const allowedList = getAllowedAccess();
 
