@@ -12,11 +12,8 @@ import {
   cleanupOldMatches,
   cleanupStaleEntries,
 } from "../controllers/deleteOldMatches.js";
-
 const PROVIDER_BASE = process.env.CLIENT_API_URL;
 const client = axios.create({ baseURL: PROVIDER_BASE, timeout: 15000 });
-
-// ========== SYNC SPORTS ==========
 export const syncSports = async () => {
   try {
     const sports = [
@@ -34,7 +31,6 @@ export const syncSports = async () => {
   }
 };
 
-// ========== SYNC COMPETITIONS ==========
 export const syncCompetitions = async () => {
   try {
     const sports = await Sport.find({ isActive: true });
@@ -73,7 +69,6 @@ export const syncCompetitions = async () => {
   }
 };
 
-// ========== SYNC EVENTS ==========
 export const syncEvents = async () => {
   try {
     const sports = await Sport.find({ isActive: true });
@@ -115,7 +110,6 @@ export const syncEvents = async () => {
   }
 };
 
-// ========== SYNC MARKETS ==========
 export const syncMarkets = async () => {
   try {
     const soon = new Date(Date.now() + 24 * 60 * 60 * 1000);
@@ -160,7 +154,6 @@ export const syncMarkets = async () => {
   } catch (err) {}
 };
 
-// ========== START ALL JOBS ==========
 export const startSyncJobs = () => {
   syncSports();
 
