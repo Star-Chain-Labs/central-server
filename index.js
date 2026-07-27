@@ -164,6 +164,7 @@
 // // startServer();
 
 // // index.js
+
 // import "dotenv/config";
 // import express from "express";
 // import { createServer } from "http"; // ✅ ADD
@@ -328,7 +329,6 @@
 
 // startServer();
 
-// index.js
 import "dotenv/config";
 import express from "express";
 import { createServer } from "http";
@@ -349,13 +349,16 @@ const getAllowedAccess = () => {
     .split(",")
     .map((a) => a.trim())
     .filter(Boolean);
+
   return allowed;
 };
 
 const corsMiddleware = (req, res, next) => {
   const origin = req.get("origin");
   const allowedList = getAllowedAccess();
+
   const originDomain = origin?.replace(/https?:\/\//, "").split(":")[0] || "";
+
   const isAllowed = allowedList.some(
     (allowed) => origin?.includes(allowed) || originDomain === allowed,
   );
@@ -381,10 +384,12 @@ const corsMiddleware = (req, res, next) => {
 
 const accessControl = (req, res, next) => {
   const allowedList = getAllowedAccess();
+
   const clientIP =
     req.get("X-Forwarded-For")?.split(",")[0].trim() ||
     req.get("X-Real-IP") ||
     req.ip?.replace("::ffff:", "");
+
   const origin = req.get("origin") || "direct-call";
   const originDomain = origin.replace(/https?:\/\//, "").split(":")[0];
 
@@ -394,6 +399,7 @@ const accessControl = (req, res, next) => {
       originDomain === allowed ||
       origin.includes(allowed) ||
       allowed.includes(clientIP);
+
     if (match) {
       console.log(`   ✅ Matched with: ${allowed}`);
     }
@@ -421,7 +427,7 @@ const connectDB = async () => {
   }
 };
 
-// ============= SETUP APP =============
+// ============= SETUP EXPRESS APP =============
 const setupApp = () => {
   app.use(express.json());
 
@@ -430,7 +436,7 @@ const setupApp = () => {
       message: "Sports Sync API",
       status: "running",
       timestamp: new Date().toISOString(),
-      worker_id: cluster.worker?.id,
+      worker_id: cluster.worker?.id || "primary",
     });
   });
 
@@ -438,7 +444,7 @@ const setupApp = () => {
     res.json({
       status: "ok",
       timestamp: new Date().toISOString(),
-      worker_id: cluster.worker?.id,
+      worker_id: cluster.worker?.id || "primary",
     });
   });
 
@@ -446,7 +452,7 @@ const setupApp = () => {
     res.json({
       status: true,
       data: getSocketStats(),
-      worker_id: cluster.worker?.id,
+      worker_id: cluster.worker?.id || "primary",
     });
   });
 
@@ -465,52 +471,58 @@ const setupApp = () => {
         your_ip: clientIP,
         allowed_access_list: allowedList,
         total_allowed: allowedList.length,
+        message:
+          "Add more IPs/domains to .env file: ALLOWED_DOMAINS=ip1,domain1,ip2,domain2",
       },
     });
   });
 };
 
-// ============= START SERVER (Worker) =============
-const startServer = async () => {
+// ============= START WORKER SERVER =============
+const startWorkerServer = async () => {
   await connectDB();
   initSocketServer(httpServer);
   setupApp();
 
-  const allowedList = getAllowedAccess();
-
   httpServer.listen(PORT, "0.0.0.0", () => {
-    console.log(
-      `\n🚀 Worker #${cluster.worker?.id} running on 0.0.0.0:${PORT}`,
-    );
+    console.log(`\n${"=".repeat(60)}`);
+    console.log(`🚀 Worker #${cluster.worker?.id} running on 0.0.0.0:${PORT}`);
+    console.log(`🔌 WebSocket: ws://72.61.237.185:${PORT}`);
+    console.log(`${"=".repeat(60)}\n`);
   });
 };
 
 // ============= CLUSTER SETUP =============
 if (cluster.isPrimary) {
+  // PRIMARY PROCESS - MASTER
   console.log(`\n${"=".repeat(60)}`);
-  console.log(`🎯 Master Process PID: ${process.pid}`);
+  console.log(`🎯 MASTER Process PID: ${process.pid}`);
   console.log(`${"=".repeat(60)}\n`);
 
-  await connectDB(); // Primary mein hi connect karo ek baar
+  // Connect DB once in primary
+  await connectDB();
 
   const numWorkers = process.env.WORKERS || os.cpus().length;
   console.log(`📊 Spawning ${numWorkers} workers...\n`);
 
+  // Spawn workers
   for (let i = 0; i < numWorkers; i++) {
     cluster.fork();
   }
 
-  // ✅ Cron jobs PRIMARY mein chalenge - duplicate nahi hoga
+  // ✅ ONLY PRIMARY RUNS CRON JOBS - NO DUPLICATION
+  console.log(`⏰ Starting sync jobs in PRIMARY process...\n`);
   startSyncJobs();
 
-  // Worker crash ho toh restart karo
+  // Handle worker crashes
   cluster.on("exit", (worker, code, signal) => {
     console.log(
-      `⚠️ Worker ${worker.id} died (${signal || code}). Respawning...`,
+      `⚠️ Worker #${worker.id} died (${signal || code}). Respawning...`,
     );
     cluster.fork();
   });
 
+  // Graceful shutdown
   process.on("SIGTERM", () => {
     console.log("🛑 Master shutting down...");
     for (const id in cluster.workers) {
@@ -519,6 +531,6 @@ if (cluster.isPrimary) {
     process.exit(0);
   });
 } else {
-  // Worker process - server chalenge
-  startServer();
+  // WORKER PROCESS - HANDLE REQUESTS
+  startWorkerServer();
 }
