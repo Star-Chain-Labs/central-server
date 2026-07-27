@@ -474,9 +474,7 @@ app.get("/access-info", (req, res) => {
 // ============= START SERVER (Worker) =============
 const startServer = async () => {
   await connectDB();
-
-  initSocketServer(httpServer);
-
+  await initSocketServer(httpServer);
   startSyncJobs();
 
   const allowedList = getAllowedAccess();
