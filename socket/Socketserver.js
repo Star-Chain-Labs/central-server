@@ -40,18 +40,24 @@
 
 //     console.log(`🔌 [WS] Client connected: ${socket.id} | IP: ${clientIP}`);
 
+//     // ============= SUBSCRIBE TO EVENTS =============
+//     // Client kis event ko subscribe karna chahta hai
 //     socket.on("subscribe:event", async (eventId) => {
 //       socket.join(`event:${eventId}`);
 //       console.log(`📡 [WS] ${socket.id} subscribed to event: ${eventId}`);
+
+//       // Immediately send current data
 //       await sendEventData(socket, eventId);
 //     });
 
 //     socket.on("unsubscribe:event", (eventId) => {
 //       socket.leave(`event:${eventId}`);
+//       console.log(`[WS] ${socket.id} unsubscribed from event: ${eventId}`);
 //     });
 
 //     socket.on("subscribe:sport", (sportId) => {
 //       socket.join(`sport:${sportId}`);
+//       console.log(`📡 [WS] ${socket.id} subscribed to sport: ${sportId}`);
 //     });
 
 //     socket.on("unsubscribe:sport", (sportId) => {
@@ -60,6 +66,7 @@
 
 //     socket.on("subscribe:all", () => {
 //       socket.join("all");
+//       console.log(`📡 [WS] ${socket.id} subscribed to all`);
 //     });
 
 //     socket.on("disconnect", (reason) => {
@@ -77,7 +84,32 @@
 //   return io;
 // };
 
-// // ============= INITIAL SNAPSHOT =============
+// // const sendEventData = async (socket, eventId) => {
+// //   try {
+// //     const marketId = getMarketIdByEvent(eventId);
+// //     const oddsStale = !marketId || isOddsStale(marketId);
+// //     const oddsData = oddsStale ? null : getOdds(marketId);
+// //     const fancyStale = isFancyStale(eventId);
+// //     const fancyData = fancyStale ? null : getFancy(eventId);
+
+// //     socket.emit(`event:${eventId}`, {
+// //       eventId,
+// //       odds: oddsData
+// //         ? { ...oddsData, stale: false }
+// //         : { status: "SUSPENDED", stale: true },
+// //       fancy: fancyData
+// //         ? { ...fancyData, stale: false }
+// //         : { bookmaker: [], fancy: [], stale: true },
+// //       ts: Date.now(),
+// //     });
+// //   } catch (err) {
+// //     console.error(`❌ [WS] sendEventData error:`, err.message);
+// //   }
+// // };
+
+// // ============= BROADCAST ODDS =============
+// // Sync jobs ye call karenge jab bhi data update ho
+
 // const sendEventData = async (socket, eventId) => {
 //   try {
 //     const marketId = getMarketIdByEvent(eventId);
@@ -86,6 +118,7 @@
 //     const fancyStale = isFancyStale(eventId);
 //     const fancyData = getFancy(eventId);
 
+//     // ✅ Odds — hamesha odds:update bhejo, stale flag ke saath
 //     if (oddsData) {
 //       socket.emit("odds:update", {
 //         marketId,
@@ -95,7 +128,10 @@
 //         ts: Date.now(),
 //       });
 //     }
+//     // Agar oddsData bilkul nahi hai (market load nahi hua abhi), kuch mat bhejo
+//     // Frontend ka REST fallback initial fetch handle karega
 
+//     // ✅ Fancy — same pattern
 //     if (fancyData) {
 //       socket.emit("fancy:update", {
 //         eventId,
@@ -109,7 +145,32 @@
 //   }
 // };
 
-// // ============= BROADCAST ODDS =============
+// // export const broadcastOdds = (marketId, oddsData) => {
+// //   if (!io) return;
+
+// //   const eventId = oddsData?.eventId;
+// //   if (!eventId) return;
+
+// //   const payload = {
+// //     marketId,
+// //     eventId,
+// //     ...oddsData,
+// //     stale: false,
+// //     ts: Date.now(),
+// //   };
+
+// //   // Event room ko bhejo
+// //   io.to(`event:${eventId}`).emit("odds:update", payload);
+
+// //   // Sport room ko bhejo
+// //   io.to(`sport:${oddsData.sportId}`).emit("odds:update", payload);
+
+// //   // All room ko bhejo
+// //   io.to("all").emit("odds:update", payload);
+// // };
+
+// // ============= BROADCAST FANCY =============
+
 // export const broadcastOdds = (marketId, oddsData) => {
 //   if (!io) return;
 
@@ -125,13 +186,14 @@
 //   };
 
 //   io.to(`event:${eventId}`).emit("odds:update", payload);
+
+//   // ✅ Safe check
 //   if (oddsData.sportId) {
 //     io.to(`sport:${oddsData.sportId}`).emit("odds:update", payload);
 //   }
+
 //   io.to("all").emit("odds:update", payload);
 // };
-
-// // ============= BROADCAST FANCY =============
 // export const broadcastFancy = (eventId, fancyData) => {
 //   if (!io) return;
 
@@ -147,6 +209,23 @@
 // };
 
 // // ============= BROADCAST SUSPENDED =============
+// // Jab timeout ho to SUSPENDED broadcast karo
+// // export const broadcastSuspended = (marketId, eventId, sportId) => {
+// //   if (!io) return;
+
+// //   const payload = {
+// //     marketId,
+// //     eventId,
+// //     status: "SUSPENDED",
+// //     stale: true,
+// //     ts: Date.now(),
+// //   };
+
+// //   io.to(`event:${eventId}`).emit("odds:suspended", payload);
+// //   io.to(`sport:${sportId}`).emit("odds:suspended", payload);
+// //   io.to("all").emit("odds:suspended", payload);
+// // };
+
 // export const broadcastSuspended = (marketId, eventId, sportId) => {
 //   if (!io) return;
 
@@ -157,11 +236,8 @@
 //     stale: true,
 //     ts: Date.now(),
 //   };
-
 //   io.to(`event:${eventId}`).emit("odds:suspended", oddsPayload);
-//   if (sportId) {
-//     io.to(`sport:${sportId}`).emit("odds:suspended", oddsPayload);
-//   }
+//   io.to(`sport:${sportId}`).emit("odds:suspended", oddsPayload);
 //   io.to("all").emit("odds:suspended", oddsPayload);
 
 //   io.to(`event:${eventId}`).emit("fancy:update", {
@@ -172,10 +248,10 @@
 //     ts: Date.now(),
 //   });
 // };
-
-// // ============= SOCKET STATS =============
+// // ============= GET SOCKET STATS =============
 // export const getSocketStats = () => {
 //   if (!io) return { connected: 0, rooms: 0 };
+
 //   return {
 //     connected: io.engine.clientsCount,
 //     rooms: io.sockets.adapter.rooms.size,
@@ -183,8 +259,6 @@
 // };
 
 import { Server } from "socket.io";
-import { createAdapter } from "@socket.io/redis-adapter";
-import { createClient } from "redis";
 import {
   getOdds,
   getFancy,
@@ -196,7 +270,7 @@ import {
 let io = null;
 
 // ============= INIT SOCKET SERVER =============
-export const initSocketServer = async (httpServer) => {
+export const initSocketServer = (httpServer) => {
   io = new Server(httpServer, {
     cors: {
       origin: (origin, callback) => {
@@ -218,29 +292,6 @@ export const initSocketServer = async (httpServer) => {
     pingTimeout: 10000,
     pingInterval: 5000,
   });
-
-  // ✅ REDIS ADAPTER FOR CLUSTER MODE
-  try {
-    const pubClient = createClient({
-      host: process.env.REDIS_HOST || "localhost",
-      port: process.env.REDIS_PORT || 6379,
-      password: process.env.REDIS_PASSWORD || undefined,
-    });
-
-    const subClient = pubClient.duplicate();
-
-    await Promise.all([pubClient.connect(), subClient.connect()]);
-
-    io.adapter(createAdapter(pubClient, subClient));
-
-    console.log("✅ [Redis] Connected - Socket.IO cluster mode active");
-  } catch (err) {
-    console.warn(
-      "⚠️ [Redis] Connection failed, using default adapter:",
-      err.message,
-    );
-    // Fallback to default adapter
-  }
 
   io.on("connection", (socket) => {
     const clientIP =
